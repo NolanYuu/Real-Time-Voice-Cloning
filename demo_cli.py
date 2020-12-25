@@ -11,6 +11,8 @@ import librosa
 import argparse
 import torch
 import sys
+import matplotlib.pyplot as plt
+import re
 from audioread.exceptions import NoBackendError
 
 if __name__ == '__main__':
@@ -128,12 +130,45 @@ if __name__ == '__main__':
     
     print("Interactive generation loop")
     num_generated = 0
-    while True:
+
+    paths = [
+        "/inspur/AISHELL-3/train/wav/SSB0005/SSB00050001.wav",
+        # "/inspur/AISHELL-3/train/wav/SSB0005/SSB00050002.wav",
+        # "/inspur/AISHELL-3/train/wav/SSB0005/SSB00050003.wav",
+        # "/inspur/AISHELL-3/train/wav/SSB0005/SSB00050004.wav",
+
+        # "/inspur/AISHELL-3/train/wav/SSB0009/SSB00090001.wav",
+        # "/inspur/Real-Time-Voice-Cloning/SSB00090001_gene.wav",
+        # "/inspur/AISHELL-3/train/wav/SSB0009/SSB00090002.wav",
+        # "/inspur/AISHELL-3/train/wav/SSB0009/SSB00090003.wav",
+        # "/inspur/AISHELL-3/train/wav/SSB0009/SSB00090005.wav",
+
+        # "/inspur/AISHELL-3/train/wav/SSB0011/SSB00110001.wav",
+        # "/inspur/Real-Time-Voice-Cloning/SSB00110001_gene.wav",
+        # "/inspur/AISHELL-3/train/wav/SSB0011/SSB00110002.wav",
+        # "/inspur/AISHELL-3/train/wav/SSB0011/SSB00110003.wav",
+        # "/inspur/AISHELL-3/train/wav/SSB0011/SSB00110004.wav",
+    ]
+    ts = [
+        "He was being fitted for ruling the state, in the words of his biographer."
+        for _ in range(len(paths))
+    ]
+    np.random.seed(1)
+    pre = None
+
+    # while True:
+    # for i, (path, t) in enumerate(zip(paths, ts)):
+    for lam in range(11):
+        lam /= 10
+        i = 0
+        path = "/inspur/AISHELL-3/train/wav/SSB0005/SSB00050001.wav"
+        t = "He was being fitted for ruling the state, in the words of his biographer."
         try:
             # Get the reference audio filepath
             message = "Reference voice: enter an audio filepath of a voice to be cloned (mp3, " \
                       "wav, m4a, flac, ...):\n"
-            in_fpath = Path(input(message).replace("\"", "").replace("\'", ""))
+            # in_fpath = Path(input(message).replace("\"", "").replace("\'", ""))
+            in_fpath = Path(path.replace("\"", "").replace("\'", ""))
 
             if in_fpath.suffix.lower() == ".mp3" and args.no_mp3_support:
                 print("Can't Use mp3 files please try again:")
@@ -158,10 +193,87 @@ if __name__ == '__main__':
             
             
             ## Generating the spectrogram
-            text = input("Write a sentence (+-20 words) to be synthesized:\n")
+            # text = input("Write a sentence (+-20 words) to be synthesized:\n")
+            text = t
             
             # The synthesizer works in batch, so you need to put your data in a list or numpy array
             texts = [text]
+
+            # # test first
+            # test = np.zeros(embed.shape).astype(embed.dtype)
+            # embed = test
+
+            # # test second
+            # ma = max(embed)
+            # mi = min(embed)
+            # test = np.random.random(embed.shape).astype(embed.dtype)
+            # test = test * (ma - mi) + mi
+            # embed = test
+            
+            # # test third
+            # print("\033[1;33m{}, {}\033[0m".format(embed.mean(), embed.std()))
+            temp = re.search(r"\w*(?=\.wav)", path).group(0)
+
+            
+            embed = lam * embed
+            # if pre is None:
+            #     pre = embed
+            # else:
+            #     euc = np.linalg.norm(embed - pre)
+            #     print("euc: \033[1;33m{}\033[0m".format(euc))
+            #     norm1 = np.linalg.norm(embed)
+            #     norm2 = np.linalg.norm(pre)
+            #     sim = np.dot(embed, pre) / (norm1 * norm2)
+            #     print("sim: \033[1;33m{}\033[0m".format(sim))
+
+
+            # test = np.random.normal(embed.mean(), embed.std(), embed.shape).astype(embed.dtype)
+            # plt.hist(test, bins=64, facecolor="blue", edgecolor="black", alpha=0.6)
+            # plt.savefig("{}_random.png".format(temp))
+            # plt.close()
+            # embed = test
+
+            # # test fourth
+            # print("\033[1;33m{}\033[0m".format(embed[:16]))
+            # test = np.random.normal(0, 1, embed.shape).astype(embed.dtype)
+            # embed = test
+            # print("\033[1;31m{}\033[0m".format(embed[:16]))
+            plt.hist(embed, bins=64, facecolor="blue", edgecolor="black", alpha=0.6)
+            plt.savefig("{}_hist.png".format(temp))
+            plt.close()
+
+            k = embed[embed != 0.0]
+            plt.hist(k, bins=32, facecolor="blue", edgecolor="black", alpha=0.6)
+            plt.savefig("{}_hist_rmzero.png".format(temp))
+            plt.close()
+
+            x = np.arange(embed.size)
+            plt.bar(x, embed, width=1)
+            plt.savefig("{}_bar.png".format(temp))
+            plt.close()
+
+            # new = np.zeros(embed.shape)
+            # new[:k.size] = k
+            # embed = new
+            # print(embed)
+
+            # embed1 = np.array(embed, copy=True)
+            # embed1 = embed1[embed1 != 0]
+            # test1 = np.random.normal(embed1.mean(), embed1.std(), embed1.shape).astype(embed1.dtype)
+            # test1 = np.hstack((test1, np.zeros((embed.size-test1.size, ))))
+            # np.random.shuffle(test1)
+
+            # plt.bar(x, test1, width=1)
+            # plt.savefig("{}_bar_test1.png".format(temp))
+            # plt.close()
+
+            # plt.hist(test1, bins=64, facecolor="blue", edgecolor="black", alpha=0.6)
+            # plt.savefig("{}_hist_test1.png".format(temp))
+            # plt.close()
+            
+
+
+
             embeds = [embed]
             # If you know what the attention layer alignments are, you can retrieve them here by
             # passing return_alignments=True
@@ -203,7 +315,9 @@ if __name__ == '__main__':
                     raise
                 
             # Save it on the disk
-            filename = "demo_output_%02d.wav" % num_generated
+            # filename = "demo_output_%02d.wav" % num_generated
+            # filename = "{}_gene.wav".format(temp)
+            filename = "{}_gene_{:.1f}.wav".format(temp, lam)
             print(generated_wav.dtype)
             sf.write(filename, generated_wav.astype(np.float32), synthesizer.sample_rate)
             num_generated += 1
